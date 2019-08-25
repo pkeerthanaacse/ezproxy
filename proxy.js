@@ -319,7 +319,7 @@ class ProxyCore extends events.EventEmitter {
 /**
  * start proxy server as well as recorder
  */
-class EzProxyServer extends ProxyCore {
+class ProxyServer extends ProxyCore {
   /**
    *
    * @param {object} config - config
@@ -337,8 +337,7 @@ class EzProxyServer extends ProxyCore {
   }
 
   start() {
-    // start web interface if neeeded
-      return super.start();
+    return super.start();
   }
 
   close() {
@@ -377,7 +376,7 @@ class EzProxyServer extends ProxyCore {
 }
 
 
-class ProxyServer {
+class EzProxyServer {
   constructor(port, networkSettings) {
     this.networkSettings = networkSettings || null;
     this._persistentNetworkAdaptorProxySession = null;
