@@ -438,7 +438,7 @@ class ProxyServer {
   }
 
   createProxyServer() {
-    this.proxyServer = new EzProxyServer({
+    this.proxyServer = new ProxyServer({
       port: this.port,
     });
   }
