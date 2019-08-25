@@ -37,15 +37,15 @@ Rules
    - [x] 'req' parameter can be used to modify request.
    - [x] 'res' parameter can be used to modify response.
    - [x] Rule functions must return requests or response objects - see API reference for examples.
-   - [x] Rules can be added using addRuleOn*(<ruleName>, <ruleFunction>)
-   - [x] Rules can be removeed using removeRuleOn*(<ruleName>)
+   - [x] Rules can be added using addRuleOn<*>(<ruleName>, <ruleFunction>)
+   - [x] Rules can be removeed using removeRuleOn<*>(<ruleName>)
    
 Filters
 ------------
 
-   - [x] Filters are normal functions and must be defined as function <filter_name> (res).
-   - [x] 'res' parameter can be used to define conditions over responses for filtering.
-   - [x] Every filter function must return either the response (if the response must be collected) or null (if the response must be rejected).
+   - [x] Filters are functions and must be defined as function <filter_name> (record).
+   - [x] 'record' parameter can be used to define conditions over requests/responses for filtering.
+   - [x] Every filter function must return either the record (if the record must be collected) or null (if the response must be rejected).
    
 
 API Reference
