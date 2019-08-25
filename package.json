@@ -1,0 +1,57 @@
+{
+  "author": {
+    "name": "Abhimanyu Pandian"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "async": "~0.9.0",
+    "async-task-mgr": ">=1.1.0",
+    "binstring": "^0.2.1",
+    "body-parser": "^1.13.1",
+    "brotli": "^1.3.2",
+    "classnames": "^2.2.5",
+    "clipboard-js": "^0.3.3",
+    "co": "^4.6.0",
+    "colorful": "^2.1.0",
+    "commander": "~2.11.0",
+    "component-emitter": "^1.2.1",
+    "compression": "^1.4.4",
+    "es6-promise": "^3.3.1",
+    "express": "^4.8.5",
+    "fast-json-stringify": "^0.17.0",
+    "iconv-lite": "^0.4.6",
+    "inquirer": "^5.2.0",
+    "ip": "^0.3.2",
+    "juicer": "^0.6.6-stable",
+    "mime-types": "2.1.11",
+    "moment": "^2.15.1",
+    "nedb": "^1.8.0",
+    "node-easy-cert": "^1.0.0",
+    "on-change": "^1.6.2",
+    "pug": "^2.0.0-beta6",
+    "qrcode-npm": "0.0.3",
+    "request": "^2.74.0",
+    "stream-throttle": "^0.1.3",
+    "svg-inline-react": "^1.0.2",
+    "thunkify": "^2.1.2",
+    "whatwg-fetch": "^1.0.0",
+    "ws": "^5.1.0"
+  },
+  "deprecated": false,
+  "description": "A Proxy Server implementation in JS based on AnyProxy with additional functionalities",
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "homepage": "https://github.com/abhimanyupandian/ezproxy#readme",
+  "license": "Apache-2.0",
+  "main": "proxy.js",
+  "name": "ezproxy",
+  "pre-commit": [
+    "lint"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhimanyupandian/ezproxy.git"
+  },
+  "version": "1.0.0"
+}
