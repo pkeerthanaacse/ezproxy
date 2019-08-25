@@ -1,6 +1,6 @@
 Easy Proxy
 ----------------
-A Proxy Server implementation in JS based on AnyProxy - https://github.com/alibaba/anyproxy - with additional functionalities including VPN support (Windows only) and end-to-end scripting.
+A Proxy Server implementation in JS based on AnyProxy - https://github.com/alibaba/anyproxy - with additional functionalities including VPN support (Windows only) and end-to-end scripting support.
 
 
 Installation
@@ -12,7 +12,7 @@ npm install https://github.com/abhimanyupandian/ez-proxy
 Declaration
 ------------
     
-    const EzProxy = require('ezproxy');
+    const EzProxy = require('ez-proxy');
 
 Creating Proxy Server Instance
 ------------
@@ -51,10 +51,14 @@ Filters
 API Reference
 ------------
 
-- start() : 
+- start() : Starts the Proxy Server without storing results.
 
         proxy.start()
-    
+
+- startAndRecord() : Starts the Proxy Server and stores results into allRecords and filteredRecords (if any filter is available).
+
+        proxy.startAndRecord()
+
 - stop() : 
 
         proxy.stop()
@@ -63,15 +67,15 @@ API Reference
  
         proxy.getServerState()
 
-- enableForceProxyHttps() : 
+- enableForceProxyHttps() : Forces HTTPS on all requests.
  
         proxy.enableForceProxyHttps()
 
-- disableForceProxyHttps() : 
+- disableForceProxyHttps() : Disables forcing HTTPS on all requests.
  
         proxy.disableForceProxyHttps()
 
-- addRuleOnRequest(req, res) :
+- addRuleOnRequest(req, res) : Adds a rule before sending request to target server.
 
         function simpleRuleBeforeRequest(req, res) {
               if (req.url.includes('api.test.net')) {
@@ -87,11 +91,11 @@ API Reference
 
         proxy.addRuleOnRequest('rule1', simpleRuleBeforeRequest)
         
-- removeRuleOnRequest(filterName) : 
+- removeRuleOnRequest(filterName) : Removes existing rule on request.
  
         proxy.removeRuleOnRequest('rule1')
         
-- addRuleOnResponse(req, res) : 
+- addRuleOnResponse(req, res) : Adds a rule before sending response to client.
 
         function simpleRuleBeforeResponse(req, res) {
             if (req.url.toString().includes('give.me.response')) {
@@ -103,27 +107,25 @@ API Reference
 
         proxy.addRuleOnResponse('rule2', simpleRuleBeforeResponse)
         
-- removeRuleOnResponse(filterName) : 
+- removeRuleOnResponse(filterName) : Removes existing rule on response.
  
         proxy.removeRuleOnResponse('rule2')
         
-- addRuleOnHTTPRequest(req, res) : 
+- addRuleOnForceHTTPSBeforeRequest(req, res) : Adds a rule to force HTTPS or not before sending request to target server.
 
         function simpleRuleBeforeHTTP(req, res) {
             if (req.url.toString().includes('give.me.response')) {
-                const newResponse = res.response;
-                newResponse.body += '- Proxy Edited!';
-                return { response: newResponse };
+                return true;
             }
         }
 
-        proxy.addRuleOnHTTPRequest('rule3', simpleRuleBeforeHTTP)
+        proxy.addRuleOnForceHTTPSBeforeRequest('rule3', simpleRuleBeforeHTTP)
         
-- removeRuleOnHTTPRequest(filterName) : 
+- removeRuleOnForceHTTPSBeforeRequest(filterName) : Removes existing rule on forcing HTTPS.
  
-        proxy.removeRuleOnHTTPRequest('rule3')
+        proxy.removeRuleOnForceHTTPSBeforeRequest('rule3')
         
-- addRuleOnError(req, res) : 
+- addRuleOnError(req, res) : Adds a rule on error.
 
         function simpleRuleOnError(req, res) {
            if (req.url.toString().includes('give.me.response')) {
@@ -135,11 +137,11 @@ API Reference
 
          proxy.addRuleOnError('rule4', simpleRuleOnError)
          
-- removeRuleOnError(filterName) : 
+- removeRuleOnError(filterName) : Removes existing rule on error.
  
         proxy.removeRuleOnError('rule4')
 
-- addRuleOnConnectError(req, res) : 
+- addRuleOnConnectError(req, res) : Adds a rule on Connection error.
 
         function simpleRuleOnConnectError(req, res) {
             if (req.url.toString().includes('give.me.response')) {
@@ -151,7 +153,11 @@ API Reference
          
         proxy.addRuleOnConnectError('rule5', simpleRuleOnConnectError)
 
-- addFilter(filterName, filterFunction) : 
+- removeRuleOnConnectError(filterName) : Removes existing rule on Connection error.
+ 
+        proxy.removeRuleOnConnectError('rule5')
+
+- addFilter(filterName, filterFunction) : Adds a filter for the records(request + response) to be stored. Filtered records are stored in filteredRecords("<filter_name>")
 
         function simpleFilter(response) {
              if (response.url.toString().includes('api.test.net')) {
@@ -166,11 +172,11 @@ API Reference
 
         proxy.addFilter('filter-only-pdf-responses', simpleFilter)
 
-- removeFilter(filterName) : 
+- removeFilter(filterName) : Removes existing filter.
  
         proxy.removeFilter(filterName)
 
-- removeAllFilters() : 
+- removeAllFilters() : Removes all existing filters.
  
         proxy.removeAllFilters()
 
