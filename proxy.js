@@ -1,3 +1,19 @@
+/*
+Copyright [2019] [Abhimanyu Pandian]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 'use strict';
 
 const http = require('http'),
@@ -319,7 +335,7 @@ class ProxyCore extends events.EventEmitter {
 /**
  * start proxy server as well as recorder
  */
-class ProxyServer extends ProxyCore {
+class _ProxyServer extends ProxyCore {
   /**
    *
    * @param {object} config - config
@@ -376,14 +392,14 @@ class ProxyServer extends ProxyCore {
 }
 
 
-class EzProxyServer {
+class ProxyServer {
+  
   constructor(port, networkSettings) {
     this.networkSettings = networkSettings || null;
     this._persistentNetworkAdaptorProxySession = null;
 
     this.host = '127.0.0.1'; // Host defaults to current system itself.
     this.port = port;
-    
   
     this._recording = false;
     this.filterFunctions = {};
@@ -399,6 +415,12 @@ class EzProxyServer {
     this._updateForceHTTPSBeforeRequest();
     this._updateRuleOnError();
     this._updateRuleOnConnectError();
+  }
+
+  createProxyServer() {
+    this.proxyServer = new _ProxyServer({
+      port: this.port,
+    });
   }
 
   enablePersistentNetworkAdaptorProxySession(networkAdaptorName, binary) {
@@ -434,12 +456,6 @@ class EzProxyServer {
 
   getServerState() {
     return this.proxyServer.status;
-  }
-
-  createProxyServer() {
-    this.proxyServer = new ProxyServer({
-      port: this.port,
-    });
   }
 
   enableForceProxyHttps() {
@@ -664,5 +680,5 @@ class EzProxyServer {
   // }
 }
 
-module.exports.ProxyServer = EzProxyServer;
+module.exports.ProxyServer = ProxyServer;
 

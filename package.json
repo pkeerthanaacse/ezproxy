@@ -2,7 +2,11 @@
   "author": {
     "name": "Abhimanyu Pandian"
   },
-  "bundleDependencies": false,
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_location": "/ezproxy",
   "dependencies": {
     "async": "~0.9.0",
     "async-task-mgr": ">=1.1.0",

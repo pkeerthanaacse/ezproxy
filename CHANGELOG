@@ -1,0 +1,10 @@
+25 Aug 2019: 
+    * This package is using AnyProxy 4.0.0-beta with the following modifications:
+        * Added reference to AnyProxy usage in README.md and descriptions.
+        * Removed all folders except lib, resource, samples, package.json, proxy.js, README.md, LICENSE.
+        * Renamed all AnyProxy references to EZProxy/ProxySever, on all files.
+        * Added custom rule and filter functions to modify results through scripting.
+        * Added "modified" copyrights to all source files.
+        * Removed webInterface capability.
+        * Added functions for getting current system proxy state and setting proxy state, on Windows.
+
