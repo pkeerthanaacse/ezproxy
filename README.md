@@ -1,6 +1,6 @@
 Easy Proxy
 ----------------
-A Proxy Server implementation in JS based on AnyProxy - https://github.com/alibaba/anyproxy - with additional functionalities including VPN support (Windows only) and end-to-end scripting support.
+A Proxy Server implementation in JS based on AnyProxy - https://github.com/alibaba/anyproxy - with additional functionalities including VPN support (Windows only) and end-to-end scripting.
 
 
 Installation
