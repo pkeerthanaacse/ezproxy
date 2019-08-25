@@ -12,7 +12,7 @@ npm install https://github.com/abhimanyupandian/ez-proxy
 Declaration
 ------------
     
-    const EzProxy = require('ez-proxy');
+    const EzProxy = require('ezproxy');
 
 Creating Proxy Server Instance
 ------------
