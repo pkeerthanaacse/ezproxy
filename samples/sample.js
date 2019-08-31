@@ -1,17 +1,32 @@
-proxy = require('easy-proxy');
+
+//- Modified work Copyright 2019 Abhimanyu Pandian
+
+//- Licensed under the Apache License, Version 2.0 (the "License");
+//- you may not use this file except in compliance with the License.
+//- You may obtain a copy of the License at
+
+//-     http://www.apache.org/licenses/LICENSE-2.0
+
+//- Unless required by applicable law or agreed to in writing, software
+//- distributed under the License is distributed on an "AS IS" BASIS,
+//- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//- See the License for the specific language governing permissions and
+//- limitations under the License.
+
+proxy = require('ezproxy');
 
 server = new proxy.ProxyServer(
     '8888', 
     // {
     //     persistent: true,
-    //     networkAdaptorName: "Comcast VPN Adapter",
+    //     networkAdaptorName: "VPN Adapter",
     // }
 )
 
 function before(req) {
     if (req.host.toString().includes('.com')) {
         const newReqMethod = req._req;
-        newReqMethod.method = 'GETTTTTT';
+        newReqMethod.method = 'GETTO';
         const newRequestOptions = req.requestOptions;
         return {
           requestOptions: newRequestOptions,
