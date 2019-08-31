@@ -179,5 +179,34 @@ API Reference
 - removeAllFilters() : Removes all existing filters.
  
         proxy.removeAllFilters()
+  
+Response object parameters:
+---------
+ Different values of a "req" parameter can be accessed like:
+ 
+        - request.requestOptions.hostname
+        - request.requestOptions.port
+        - request.requestOptions.path
+        - request.requestOptions.method
+        - request.requestOptions.headers.Host
+        - request.requestOptions.headers.Connection
+        - request.requestOptions.headers['Access-Control-Request-Method']
+        - request.requestOptions.headers['User-Agent']
+        - request.protocol
+        - request.url
+        - request.requestData
+
+Response object parameters:
+---------
+ Different values of a "res" parameter can be accessed like:
+ 
+        - res.response.statusCode
+        - res.response.header.Date
+        - res.response.header.Server
+        - res.response.header.Connection
+        - res.response.header['Content-Type']
+        - res.response.body
+        
+
 
 
