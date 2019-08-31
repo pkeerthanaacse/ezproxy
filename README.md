@@ -159,10 +159,10 @@ API Reference
 
 - addFilter(filterName, filterFunction) : Adds a filter for the records(request + response) to be stored. Filtered records are stored in filteredRecords("<filter_name>")
 
-        function simpleFilter(response) {
-             if (response.url.toString().includes('api.test.net')) {
-                 if(response.statusCode == 200) {
-                   if (response.url.toString().endsWith(".pdf")){
+        function simpleFilter(res) {
+             if (res.url.toString().includes('api.test.net')) {
+                 if(res.statusCode == 200) {
+                   if (res.url.toString().endsWith(".pdf")){
                         return response;
                    }
                 }
@@ -182,7 +182,8 @@ API Reference
   
 Response object parameters:
 ---------
- Different values of a "req" parameter can be accessed like:
+  Sample request object is provided in /samples/.
+  Different values of a "req" parameter can be accessed like:
  
         - req.requestOptions.hostname
         - req.requestOptions.port
@@ -198,7 +199,8 @@ Response object parameters:
 
 Response object parameters:
 ---------
- Different values of a "res" parameter can be accessed like:
+  Sample response object is provided in /samples/.
+  Different values of a "res" parameter can be accessed like:
  
         - res.response.statusCode
         - res.response.header.Date
@@ -206,6 +208,10 @@ Response object parameters:
         - res.response.header.Connection
         - res.response.header['Content-Type']
         - res.response.body
+        - res.url
+        - res.method
+        - res.statusCode
+        - res.statusMessage
         
 
 
