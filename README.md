@@ -184,17 +184,17 @@ Response object parameters:
 ---------
  Different values of a "req" parameter can be accessed like:
  
-        - request.requestOptions.hostname
-        - request.requestOptions.port
-        - request.requestOptions.path
-        - request.requestOptions.method
-        - request.requestOptions.headers.Host
-        - request.requestOptions.headers.Connection
-        - request.requestOptions.headers['Access-Control-Request-Method']
-        - request.requestOptions.headers['User-Agent']
-        - request.protocol
-        - request.url
-        - request.requestData
+        - req.requestOptions.hostname
+        - req.requestOptions.port
+        - req.requestOptions.path
+        - req.requestOptions.method
+        - req.requestOptions.headers.Host
+        - req.requestOptions.headers.Connection
+        - req.requestOptions.headers['Access-Control-Request-Method']
+        - req.requestOptions.headers['User-Agent']
+        - req.protocol
+        - req.url
+        - req.requestData
 
 Response object parameters:
 ---------
