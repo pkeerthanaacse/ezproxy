@@ -16,7 +16,7 @@
 'use strict';
 
 // const log = require('why-is-node-running')
-
+const stringify = require('fast-stringify');
 const http = require('http'),
   https = require('https'),
   async = require('async'),
@@ -685,16 +685,39 @@ class ProxyServer {
                                                                                             " request on " + record.url + ".")
                   })
                   nested.addTest(testObject)
-                  const tests = nested.tests;
-                  const context = {test: tests[tests.length - 1]}
+                  var tests = nested.tests;
+                  var context = {test: tests[tests.length - 1]}
 
-                  addContext(context, {title: "Data", value: record});
+                  // delete record._id
+                  // delete record.id
+                  // delete record.path
+                  // delete record.length
+                  
+                  // if(record.resBody != "") {
+                  //   record.resBody = record.resBody.toString();
+                  // }
+
+                  // var data = ""
+                  // for (var each in record) {
+                  //   var content = record[each];
+                  //   if (typeof content == Object) {
+                  //     data += each + "=" + JSON.stringify(content);
+                  //   } else {
+                  //     data += each + "=" + content
+                  //   }
+                  //   data += "\n"
+                  // }
+
+                  addContext(context, {title: "Data", value: JSON.stringify(record, null, 2)});
     
                   if (testResult) {
                     self.tests[eachTestName]['passed'].push(record.id);
                   } else {
                     self.tests[eachTestName]['failed'].push(record.id);
                   }
+                  // data = null;
+                  tests = null;
+                  context = null;
                 }
               } catch (e) {
                 logUtil.printLog("[TEST ERROR] There was a problem in executing test " + eachTestName + " because : " + e.toString())
@@ -814,10 +837,11 @@ class ProxyServer {
       this.mocha.run(function () {
         logUtil.printLog("[SERVER INFO] Tests completed!");
         // log() // logs out active handles that are keeping node running
-        // process.exit();
+        process.exit();
       }) 
     } else {
-      // process.exit();
+      // log() // logs out active handles that are keeping node running
+      process.exit();
     }
 
   }
