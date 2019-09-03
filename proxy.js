@@ -648,7 +648,7 @@ class ProxyServer {
   }
   
   initializeMocha() {
-    this.suite = new Mocha.Suite("EZProxy Test Results");
+    this.suite = new Mocha.Suite("EZProxy Test Results [" + new Date().toString().split(" ").slice(0,5).join(" ") + "]");
     this.mocha = new Mocha({
       ui: 'bdd',
       reporter: 'mochawesome',
@@ -662,7 +662,8 @@ class ProxyServer {
 
   performTestsOnRecord(record) {
     const self = this;
-    var nested = new Mocha.Suite(record.method + " " + record.url)
+    var nested = new Mocha.Suite("[" + new Date(record.startTime).toString().split(" ").slice(4,5).join(":") + "] " +
+                                                                      record.method + " " + record.url.split("?")[0])
     self.suite.addSuite(nested)
     Object.keys(self.tests).forEach(function(eachTestName) {
             const eachTest = self.tests[eachTestName];
@@ -680,13 +681,14 @@ class ProxyServer {
                   }
                   
                   var testObject = new Mocha.Test(eachTestName + " : " + record.method + " " + record.url + ".", function() {
-                    assert.equal(true, testResult, "Assertion '" + validateCondition + "' failed with " + record.method + " request on " + record.url + ".")
+                    assert.equal(true, testResult, "Assertion '" + validateCondition + "' failed with " + record.method + 
+                                                                                            " request on " + record.url + ".")
                   })
                   nested.addTest(testObject)
                   const tests = nested.tests;
                   const context = {test: tests[tests.length - 1]}
 
-                  addContext(context, {title: "Data", value: JSON.stringify(record, null, 2)});
+                  addContext(context, {title: "Data", value: record});
     
                   if (testResult) {
                     self.tests[eachTestName]['passed'].push(record.id);
@@ -807,23 +809,29 @@ class ProxyServer {
     }
   }
 
+  finalizeTests() {
+    if(this._enableTests) {
+      this.mocha.run(function () {
+        logUtil.printLog("[SERVER INFO] Tests completed!");
+        // log() // logs out active handles that are keeping node running
+        // process.exit();
+      }) 
+    } else {
+      // process.exit();
+    }
+
+  }
+
   stop() {
     this.disableRecording();
     this.proxyServer.close().then( closed => {
       systemProxyMgr.disableGlobalProxy();
       logUtil.printLog("[SERVER INFO] Proxy Server was stopped...");
-      this.mocha.run();
-      setTimeout(function () {
-        // log() // logs out active handles that are keeping node running
-        process.exit();
-      }, 1000)  
+      this.finalizeTests();
+ 
     }).catch( error => {
       logUtil.printLog("[SERVER LOG] There was an error while stopping Proxy Server. Reason : " + error)
-      this.mocha.run();
-      setTimeout(function () {
-        // log() // logs out active handles that are keeping node running
-        process.exit();
-      }, 1000)  
+      this.finalizeTests();
     })
   }
 }
