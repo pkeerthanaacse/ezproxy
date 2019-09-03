@@ -15,6 +15,8 @@
 
 'use strict';
 
+// const log = require('why-is-node-running')
+
 const http = require('http'),
   https = require('https'),
   async = require('async'),
@@ -32,12 +34,15 @@ const http = require('http'),
   onChange = require('on-change'),
   fs = require('fs'),
   utils = require('util'),
-  convert = require('binstring');
+  convert = require('binstring'),
+  assert = require('assert'),
+  Mocha = require('mocha'),
+  addContext = require('mochawesome/addContext');
 
 // var log_file = fs.createWriteStream('/debug.log', { flags: 'w' });
 // var log_stdout = process.stdout;
 
-// console.log = function (d) {
+// logUtil.printLog = function (d) {
 //    log_file.write(utils.format(d) + '\n');
 //    log_stdout.write(utils.format(d) + '\n');
 // };
@@ -45,20 +50,20 @@ const http = require('http'),
 // const memwatch = require('memwatch-next');
 
 // setInterval(() => {
-//   console.log(process.memoryUsage());
+//   logUtil.printLog(process.memoryUsage());
 //   const rss = Math.ceil(process.memoryUsage().rss / 1000 / 1000);
-//   console.log('Program is using ' + rss + ' mb of Heap.');
+//   logUtil.printLog('Program is using ' + rss + ' mb of Heap.');
 // }, 1000);
 
 // memwatch.on('stats', (info) => {
-//   console.log('gc !!');
-//   console.log(process.memoryUsage());
+//   logUtil.printLog('gc !!');
+//   logUtil.printLog(process.memoryUsage());
 //   const rss = Math.ceil(process.memoryUsage().rss / 1000 / 1000);
-//   console.log('GC !! Program is using ' + rss + ' mb of Heap.');
+//   logUtil.printLog('GC !! Program is using ' + rss + ' mb of Heap.');
 
 //   // var heapUsed = Math.ceil(process.memoryUsage().heapUsed / 1000);
-//   // console.log("Program is using " + heapUsed + " kb of Heap.");
-//   // console.log(info);
+//   // logUtil.printLog("Program is using " + heapUsed + " kb of Heap.");
+//   // logUtil.printLog(info);
 // });
 
 const T_TYPE_HTTP = 'http',
@@ -289,7 +294,7 @@ class ProxyCore extends events.EventEmitter {
    */
   close() {
     // clear recorder cache
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (this.httpProxyServer) {
         // destroy conns & cltSockets when closing proxy server
         for (const connItem of this.requestHandler.conns) {
@@ -314,15 +319,14 @@ class ProxyCore extends events.EventEmitter {
 
         this.httpProxyServer.close((error) => {
           if (error) {
-            console.error(error);
             logUtil.printLog(`proxy server close FAILED : ${error.message}`, logUtil.T_ERR);
           } else {
             this.httpProxyServer = null;
-
             this.status = PROXY_STATUS_CLOSED;
             logUtil.printLog(`proxy server closed at ${this.proxyHostName}:${this.proxyPort}`);
+            resolve("CLOSED");
           }
-          resolve(error);
+          reject(error);
         });
       } else {
         resolve();
@@ -357,35 +361,16 @@ class _ProxyServer extends ProxyCore {
 
   close() {
     return new Promise((resolve, reject) => {
-      super.close()
-        .then((error) => {
-          if (error) {
-            resolve(error);
+      super.close().then((done) => {
+          if (this.recorder) {
+            logUtil.printLog('clearing cache file...');
+            this.recorder.clear();
+            resolve("CLOSED");
           }
-        });
-
-      if (this.recorder) {
-        logUtil.printLog('clearing cache file...');
-        this.recorder.clear();
-      }
-      const tmpWebServer = this.webServerInstance;
-      this.recorder = null;
-      this.webServerInstance = null;
-      if (tmpWebServer) {
-        logUtil.printLog('closing webserver...');
-        tmpWebServer.close((error) => {
-          if (error) {
-            console.error(error);
-            logUtil.printLog(`proxy web server close FAILED: ${error.message}`, logUtil.T_ERR);
-          } else {
-            logUtil.printLog(`proxy web server closed at ${this.proxyHostName} : ${this.webPort}`);
-          }
-
-          resolve(error);
+        }).catch(error => {
+          logUtil.printLog('Unable to clready cache file. Reason : ' + error);
+          reject(error);
         })
-      } else {
-        resolve(null);
-      }
     });
   }
 }
@@ -404,7 +389,7 @@ class ProxyServer {
     this.filterFunctions = {};
     this.filteredRecords = {};
 
-    this.allRecords = {};
+    this.tests = {};
 
     this.checkRootCertificate();
     this.createProxyServer();
@@ -425,7 +410,7 @@ class ProxyServer {
   enablePersistentNetworkAdaptorProxySession(networkAdaptorName, binary) {
     var seconds = 1;
     this._persistentNetworkAdaptorProxySession = setInterval(function() {
-      // console.log("Changing Network Adaptor Settings");
+      // logUtil.printLog("Changing Network Adaptor Settings");
       if (!systemProxyMgr.enableNetworkAdaptorProxy(networkAdaptorName, binary)) {
         console.error("There was an error in configuring Network Adaptor Proxy for " + networkAdaptorName)
       }
@@ -575,7 +560,7 @@ class ProxyServer {
       certMgr.generateRootCA((error, keyPath) => {
         if (!error) {
           const certDir = require('path').dirname(keyPath);
-          console.log('The cert is generated at', certDir);
+          logUtil.printLog('The cert is generated at', certDir);
           const isWin = /^win/.test(process.platform);
           if (isWin) {
             exec('start .', { cwd: certDir });
@@ -615,69 +600,232 @@ class ProxyServer {
     }
   }
 
-  startRecording() {
-    const self = this;
-    this._recording = true;
-    this.proxyServer.recorder.records = onChange(this.proxyServer.recorder.records, function (path, record, previousValue) {
-      if (self._recording) {
-        self.applyFiltersAndStoreResults(record);
-        self.allRecords[record.id] = record;
-      }
-    });
+  getAllRecords() {
+    return this.proxyServer.recorder.records;
   }
 
-  stopRecording() {
+  addTests(testDefinitions) {
+    testDefinitions = testDefinitions || {};
+    if (testDefinitions == {}) {
+      logUtil.printLog("[TEST ERROR] No Test Defintions found. Tests wont be added.")
+    } else {
+      for (var eachTestName in testDefinitions) {
+        var eachTest = testDefinitions[eachTestName]
+        // logUtil.printLog(eachTest)
+        if (!eachTest.if) {
+          logUtil.printLog("[TEST INFO] Requirement condition not provided for test " + eachTest.testName + ". Skipping the test!")
+        } if (!eachTest.validate) {
+          logUtil.printLog("[TEST INFO] Validation condition not provided for test " + eachTest.testName + ". Skipping the test!")
+        } if (!eachTest.isMandatoryAlways) {
+          logUtil.printLog("[TEST INFO] isMandatoryAlways parameter not provided for test " + eachTest.testName + ". Defaulting to 'true'.")
+        }
+        this.tests[eachTestName] = eachTest
+        this.tests[eachTestName]['enabled'] = true;
+        this.tests[eachTestName]['passed'] = [];
+        this.tests[eachTestName]['failed'] = [];
+      }
+    }
+  }
+
+  enableTest() {
+    this.tests[testName]['enabled'] = true;
+  }
+
+  enableAllTests() {
+    for (var eachTest in this.tests) {
+      this.tests[eachTest]['enabled'] = true;
+    }
+  }
+
+  disableTest(testName) {
+    this.tests[testName]['enabled'] = false;
+  }
+
+  disableAllTests() {
+    for (var eachTest in this.tests) {
+      this.tests[eachTest]['enabled'] = false;
+    }
+  }
+  
+  initializeMocha() {
+    this.suite = new Mocha.Suite("EZProxy Test Results");
+    this.mocha = new Mocha({
+      ui: 'bdd',
+      reporter: 'mochawesome',
+      reporterOptions: {
+        reportFilename: 'html_report',
+        json: false,
+      }
+    });
+    this.mocha.suite = this.suite;
+  };
+
+  performTestsOnRecord(record) {
+    const self = this;
+    var nested = new Mocha.Suite(record.method + " " + record.url)
+    self.suite.addSuite(nested)
+    Object.keys(self.tests).forEach(function(eachTestName) {
+            const eachTest = self.tests[eachTestName];
+            const ifCondition = eachTest.if;
+            const validateCondition = eachTest.validate;
+            const isMandatoryAlways = eachTest.isMandatoryAlways;
+            const testEnabled = eachTest.enabled;
+            if (testEnabled) {
+              try {
+                if (eval(ifCondition)) {
+                  const testResult = eval(validateCondition);
+
+                  if (isMandatoryAlways) {
+                    // TODO: FAIL THE TEST CASE
+                  }
+                  
+                  var testObject = new Mocha.Test(eachTestName + " : " + record.method + " " + record.url + ".", function() {
+                    assert.equal(true, testResult, "Assertion '" + validateCondition + "' failed with " + record.method + " request on " + record.url + ".")
+                  })
+                  nested.addTest(testObject)
+                  const tests = nested.tests;
+                  const context = {test: tests[tests.length - 1]}
+
+                  addContext(context, {title: "Data", value: JSON.stringify(record, null, 2)});
+    
+                  if (testResult) {
+                    self.tests[eachTestName]['passed'].push(record.id);
+                  } else {
+                    self.tests[eachTestName]['failed'].push(record.id);
+                  }
+                }
+              } catch (e) {
+                logUtil.printLog("[TEST ERROR] There was a problem in executing test " + eachTestName + " because : " + e.toString())
+              }
+          }
+        }
+      );
+    }
+  
+
+  // startRecording() {
+  //   const self = this;
+  //   this.proxyServer.recorder.records = onChange(this.proxyServer.recorder.records, function (path, record, previousValue) {
+  //     if (self._recording && self._enableRecord) {
+  //       self.applyFiltersAndStoreResults(record);
+  //     } if (self._enableTests && this.tests != {}) {
+  //       self.performTestsOnRecord(record);
+  //     }
+  //   });
+  // }
+
+  enableRecording() {
+    this._recording = true;
+  }
+
+  disableRecording() {
     this._recording = false;
     onChange.unsubscribe(this.proxyServer.recorder.records);
   }
 
-  startAndRecord() {
-    if (!systemProxyMgr.getProxyState()) {
-      console.log("Enabling Proxy Settings...")
-      systemProxyMgr.enableGlobalProxy(this.host, this.port);
-    }
-    if (systemProxyMgr.getProxyState()) {
-      if(this.networkSettings) {
-        this.enableNetworkAdaptorProxySession(this.networkSettings);
-      }
-      console.log("Starting Proxy Server...")
-      this.proxyServer.start().then( state => {
-        console.log("Proxy Server is " + state)
-        this.startRecording();
-      }).catch( error => {
-        console.log("Proxy Server/Recorder was unable to start. Reason : " + error)
-      });
-    }
-  }
+  // startAndRecord() {
+  //   if (!systemProxyMgr.getProxyState()) {
+  //     logUtil.printLog("Enabling Proxy Settings...")
+  //     systemProxyMgr.enableGlobalProxy(this.host, this.port);
+  //   }
+  //   if (systemProxyMgr.getProxyState()) {
+  //     if(this.networkSettings) {
+  //       this.enableNetworkAdaptorProxySession(this.networkSettings);
+  //     }
+  //     logUtil.printLog("Starting Proxy Server...")
+  //     this.proxyServer.start().then( state => {
+  //       logUtil.printLog("Proxy Server is " + state)
+  //       this.startRecording();
+  //     }).catch( error => {
+  //       logUtil.printLog("Proxy Server/Recorder was unable to start. Reason : " + error)
+  //     });
+  //   }
+  // }
   
-  start() {
+  start(options) {
+    const self = this;
+
+    options = options || {};
+
+    this._enableTests = options.enableTests;
+    this._enableRecord = options.enableRecord;
+
+    const duration = options.duration;
+
+    if (duration) {
+      logUtil.printLog("[SERVER INFO] Proxy Server will run for " + duration + " minutes(s).")
+      setTimeout(function() {
+        logUtil.printLog("[SERVER INFO] Proxy Server ran for " + duration + " minute(s). Stopping...")
+        self.stop();
+      }, duration * 60 * 1000);
+    }
+
+    if (!this._enableRecord) {
+      this._enableRecord = false;
+      logUtil.printLog("[SERVER INFO] Recording is disabled.")
+    } else {
+      if (this.filterFunctions == {}) {
+        logUtil.printLog("[SERVER INFO] Recording is enabled but there are not Filters added.")
+      }
+    }
+    
+    if (!this._enableTests) {
+      this._enableTests = false;
+      logUtil.printLog("[SERVER INFO] Tests are disabled.")
+    } else {
+      if (this.tests == {}) {
+        logUtil.printLog("[SERVER INFO] Tests is enabled but there are not Tests added.")
+      } else {
+        this.initializeMocha();
+      }
+    }
+
     if (!systemProxyMgr.getProxyState()) {
-      console.log("Enabling Proxy Settings...")
+      logUtil.printLog("[SERVER INFO] Enabling Proxy Settings...")
       systemProxyMgr.enableGlobalProxy(this.host, this.port);
     }
     if (systemProxyMgr.getProxyState()) {
       if(this.networkSettings) {
         this.enableNetworkAdaptorProxySession(this.networkSettings);
       }
-      console.log("Starting Proxy Server...")
-      return this.proxyServer.start();
+      logUtil.printLog("[SERVER INFO] Starting Proxy Server...")
+        self.proxyServer.start().then( state => {
+          logUtil.printLog("[SERVER INFO] Proxy Server is " + state)
+          if (self._enableRecord || self._enableTests){
+            self.proxyServer.recorder.records = onChange(self.proxyServer.recorder.records, function (path, record, previousValue) {
+              // logUtil.printLog(record);
+              if (self._recording && self._enableRecord) {
+                self.applyFiltersAndStoreResults(record);
+              } if (self._enableTests && self.tests != {}) {
+                self.performTestsOnRecord(record);
+              }
+            });
+          }
+        }).catch( error => {
+          logUtil.printLog("[SERVER INFO] Proxy Server was unable to start. Reason : " + error)
+        });
     }
   }
 
   stop() {
-    console.log("Stopping Proxy Server...")
-    this.proxyServer.close().then( e => {
+    this.disableRecording();
+    this.proxyServer.close().then( closed => {
       systemProxyMgr.disableGlobalProxy();
-      this._recording = false;
-    });
+      logUtil.printLog("[SERVER INFO] Proxy Server was stopped...");
+      this.mocha.run();
+      setTimeout(function () {
+        // log() // logs out active handles that are keeping node running
+        process.exit();
+      }, 1000)  
+    }).catch( error => {
+      logUtil.printLog("[SERVER LOG] There was an error while stopping Proxy Server. Reason : " + error)
+      this.mocha.run();
+      setTimeout(function () {
+        // log() // logs out active handles that are keeping node running
+        process.exit();
+      }, 1000)  
+    })
   }
-
-  // * getResults(filterName, intervalSeconds) {
-  //     setInterval(function() {
-  //       yield this.results[filterName]
-  //   }, interval * 1000);
-  // }
 }
 
 module.exports.ProxyServer = ProxyServer;
-

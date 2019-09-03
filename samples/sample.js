@@ -64,11 +64,57 @@ server.enableForceProxyHttps()
 // server.addRuleOnHTTPSRequest('rule_for_vpn_before', before)
 // server.addRuleOnResponse('rule_for_response_before', beforeResponse)
 // server.addRuleOnResponse('rule_for_response_before1', beforeResponse1)
-server.addFilter('vpn_filter', vpnFilter)
-server.startAndRecord()
+// server.addFilter('vpn_filter', vpnFilter)
+
+server.addTests({
+    "TESTCASE 1": {
+        "if": "record.statusCode != ''",
+        "validate": "record.statusCode == 200",
+    },
+    "VALIDATION 1": {
+        "if": "record.host.includes('com')",
+        "validate": "record.statusCode == 200",
+    }
+})
+
+server.start({
+    enableTests: true,  
+    duration: 0.2
+})
+
+
+// Mocha = require('mocha');
+// const addContext = require('mochawesome/addContext');
+ 
+// describe('test suite', function () {
+//     console.log(this)
+//   it('should add context', function () {
+//       console.log(this)
+//     // context can be a simple string
+//     addContext(this, 'simple string');
+ 
+//     // context can be a url and the report will create a link
+//     addContext(this, 'http://www.url.com/pathname');
+ 
+//     // context can be an image url and the report will show it inline
+//     addContext(this, 'http://www.url.com/screenshot-maybe.jpg');
+ 
+//     // context can be an object with title and value properties
+//     addContext(this, {
+//       title: 'expected output',
+//       value: {
+//         a: 1,
+//         b: '2',
+//         c: 'd'
+//       }
+//     });
+//   })
+// });
+
 // server.removeRuleOnResponse('rule_for_response_before')
 
 // Start printing results every 5 seconds
 // printLogs = setInterval(function() {
-    // console.log(server.filteredRecords['vpn_filter'])
+//     console.log(server.tests)
 // }, 5 * 1000);
+
