@@ -16,7 +16,7 @@
 'use strict';
 
 // const log = require('why-is-node-running')
-const stringify = require('fast-stringify');
+
 const http = require('http'),
   https = require('https'),
   async = require('async'),
@@ -651,6 +651,7 @@ class ProxyServer {
     this.suite = new Mocha.Suite("EZProxy Test Results [" + new Date().toString().split(" ").slice(0,5).join(" ") + "]");
     this.mocha = new Mocha({
       ui: 'bdd',
+      quiet: true,
       reporter: 'mochawesome',
       reporterOptions: {
         reportFilename: 'html_report',
@@ -688,27 +689,7 @@ class ProxyServer {
                   var tests = nested.tests;
                   var context = {test: tests[tests.length - 1]}
 
-                  // delete record._id
-                  // delete record.id
-                  // delete record.path
-                  // delete record.length
-                  
-                  // if(record.resBody != "") {
-                  //   record.resBody = record.resBody.toString();
-                  // }
-
-                  // var data = ""
-                  // for (var each in record) {
-                  //   var content = record[each];
-                  //   if (typeof content == Object) {
-                  //     data += each + "=" + JSON.stringify(content);
-                  //   } else {
-                  //     data += each + "=" + content
-                  //   }
-                  //   data += "\n"
-                  // }
-
-                  addContext(context, {title: "Data", value: JSON.stringify(record, null, 2)});
+                  addContext(context, {title: "Data", value: record.rawRecord});
     
                   if (testResult) {
                     self.tests[eachTestName]['passed'].push(record.id);
@@ -728,17 +709,6 @@ class ProxyServer {
     }
   
 
-  // startRecording() {
-  //   const self = this;
-  //   this.proxyServer.recorder.records = onChange(this.proxyServer.recorder.records, function (path, record, previousValue) {
-  //     if (self._recording && self._enableRecord) {
-  //       self.applyFiltersAndStoreResults(record);
-  //     } if (self._enableTests && this.tests != {}) {
-  //       self.performTestsOnRecord(record);
-  //     }
-  //   });
-  // }
-
   enableRecording() {
     this._recording = true;
   }
@@ -747,25 +717,6 @@ class ProxyServer {
     this._recording = false;
     onChange.unsubscribe(this.proxyServer.recorder.records);
   }
-
-  // startAndRecord() {
-  //   if (!systemProxyMgr.getProxyState()) {
-  //     logUtil.printLog("Enabling Proxy Settings...")
-  //     systemProxyMgr.enableGlobalProxy(this.host, this.port);
-  //   }
-  //   if (systemProxyMgr.getProxyState()) {
-  //     if(this.networkSettings) {
-  //       this.enableNetworkAdaptorProxySession(this.networkSettings);
-  //     }
-  //     logUtil.printLog("Starting Proxy Server...")
-  //     this.proxyServer.start().then( state => {
-  //       logUtil.printLog("Proxy Server is " + state)
-  //       this.startRecording();
-  //     }).catch( error => {
-  //       logUtil.printLog("Proxy Server/Recorder was unable to start. Reason : " + error)
-  //     });
-  //   }
-  // }
   
   start(options) {
     const self = this;
@@ -840,7 +791,6 @@ class ProxyServer {
         process.exit();
       }) 
     } else {
-      // log() // logs out active handles that are keeping node running
       process.exit();
     }
 
