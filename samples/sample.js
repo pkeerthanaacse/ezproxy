@@ -79,7 +79,7 @@ server.addTests({
 
 server.start({
     enableTests: true,  
-    duration: 0.2
+    duration: 1
 })
 
 
