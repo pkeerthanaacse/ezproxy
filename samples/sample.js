@@ -17,10 +17,10 @@ proxy = require('ezproxy');
 
 server = new proxy.ProxyServer(
     '8888', 
-    // {
-    //     persistent: true,
-    //     networkAdaptorName: "VPN Adapter",
-    // }
+    {
+        persistent: true,
+        networkAdaptorName: "Comcast VPN Adapter",
+    }
 )
 
 function before(req) {
@@ -66,50 +66,35 @@ server.enableForceProxyHttps()
 // server.addRuleOnResponse('rule_for_response_before1', beforeResponse1)
 // server.addFilter('vpn_filter', vpnFilter)
 
+function test1(record) {
+    if (record.host.includes('youtube.com')) {
+        if (record.statusCode == 225) 
+        {return true;}
+    } return false;
+}
+
+function test2(record) {
+    if (record.host.includes('ytimga.com')) {
+        if (record.statusCode == 225) 
+        {return true;}
+    } return false;
+}
+
 server.addTests({
     "TESTCASE 1": {
-        "if": "record.statusCode != ''",
-        "validate": "record.statusCode == 200",
+        "test": test1,
+        "testCount": 1000,
     },
     "VALIDATION 1": {
-        "if": "record.host.includes('com')",
-        "validate": "record.statusCode == 200",
+        "test": test2,
+        "testCount": 1000
     }
 })
 
 server.start({
     enableTests: true,  
-    duration: 1
+    duration: 5
 })
-
-
-// Mocha = require('mocha');
-// const addContext = require('mochawesome/addContext');
- 
-// describe('test suite', function () {
-//     console.log(this)
-//   it('should add context', function () {
-//       console.log(this)
-//     // context can be a simple string
-//     addContext(this, 'simple string');
- 
-//     // context can be a url and the report will create a link
-//     addContext(this, 'http://www.url.com/pathname');
- 
-//     // context can be an image url and the report will show it inline
-//     addContext(this, 'http://www.url.com/screenshot-maybe.jpg');
- 
-//     // context can be an object with title and value properties
-//     addContext(this, {
-//       title: 'expected output',
-//       value: {
-//         a: 1,
-//         b: '2',
-//         c: 'd'
-//       }
-//     });
-//   })
-// });
 
 // server.removeRuleOnResponse('rule_for_response_before')
 
