@@ -35,9 +35,8 @@ const http = require('http'),
   fs = require('fs'),
   utils = require('util'),
   convert = require('binstring'),
-  assert = require('assert'),
   Mocha = require('mocha'),
-  addContext = require('mochawesome/addContext');
+  uuid = require('uuid');
 
 // var log_file = fs.createWriteStream('/debug.log', { flags: 'w' });
 // var log_stdout = process.stdout;
@@ -73,6 +72,122 @@ const T_TYPE_HTTP = 'http',
 const PROXY_STATUS_INIT = 'INIT';
 const PROXY_STATUS_READY = 'READY';
 const PROXY_STATUS_CLOSED = 'CLOSED';
+
+function MochawesomeLite(runner, options) {
+  // Set the config options
+  this.config = conf(options);
+  console.log("????????????????????????? A "  + process.memoryUsage().rss/1000000)
+  // Reporter options
+  const reporterOptions = Object.assign(
+    {},
+    (options.reporterOptions || {}),
+    {
+      reportFilename: this.config.reportFilename,
+      saveHtml: this.config.saveHtml,
+      saveJson: this.config.saveJson
+    }
+  );
+
+  console.log("????????????????????????? B "  + process.memoryUsage().rss/1000000)
+  // Done function will be called before mocha exits
+  // This is where we will save JSON and generate the HTML report
+  this.done = (failures, exit) => done(
+    this.output,
+    reporterOptions,
+    this.config,
+    failures,
+    exit
+  );
+  console.log("????????????????????????? D "  + process.memoryUsage().rss/1000000)
+  // Reset total tests counter
+  totalTestsRegistered.total = 0;
+
+  // Call the Base mocha reporter
+  Base.call(this, runner);
+
+  // const reporterName = reporterOptions.consoleReporter;
+  // if (reporterName !== 'none') {
+  //   const ConsoleReporter = consoleReporter(reporterName);
+  //   new ConsoleReporter(runner); // eslint-disable-line
+  // }
+
+  let endCalled = false;
+
+  // Add a unique identifier to each suite/test/hook
+  [ 'suite', 'test', 'hook', 'pending' ].forEach(type => {
+    runner.on(type, item => {
+      item.uuid = uuid.v4();
+    });
+  });
+
+  // Process the full suite
+  runner.on('end', () => {
+    try {
+      /* istanbul ignore else */
+      console.log("????????????????????????? E "  + process.memoryUsage().rss/1000000)
+      if (!endCalled) {
+        // end gets called more than once for some reason
+        // so we ensure the suite is processed only once
+        endCalled = true;
+        // console.log(this.runner.suite)
+        console.log("????????????????????????? E-F "  + process.memoryUsage().rss/1000000)
+        // var rootSuite = mapSuites(this.runner.suite, totalTestsRegistered, this.config);
+        var rootSuite = this.runner.suite.data;
+        console.log("????????????????????????? F "  + process.memoryUsage().rss/1000000)
+        var obj = {
+          stats: this.stats,
+          results: [ rootSuite ],
+          meta: {
+            mocha: {
+              version: mochaPkg.version
+            },
+            mochawesome: {
+              options: this.config,
+              version: pkg.version
+            },
+            marge: {
+              options: options.reporterOptions,
+              version: margePkg.version
+            }
+          }
+        };
+        
+        // const { passes, failures, pending, tests, testsRegistered } = obj.stats;
+        passes = rootSuite.passes.length;
+        failures = rootSuite.failures.length;
+        pending = rootSuite.pending.length;
+        tests = rootSuite.tests.length;
+        testsRegistered = rootSuite.tests.length;
+
+        obj.stats.testsRegistered = tests;
+        obj.stats.passes = passes;
+        obj.stats.failures = failures;
+        obj.stats.suites = rootSuite.suites.length;
+        obj.stats.tests = rootSuite.tests.length;
+
+        obj.stats.passPercent = (passes / (testsRegistered - pending)) * 100;
+        obj.stats.pendingPercent = (pending / testsRegistered) * 100;
+        obj.stats.other = (passes + failures + pending) - tests; // Failed hooks
+        obj.stats.hasOther = obj.stats.other > 0;
+        obj.stats.skipped = testsRegistered - tests;
+        obj.stats.hasSkipped = obj.stats.skipped > 0;
+        obj.stats.failures -= obj.stats.other;
+
+        console.log("????????????????????????? G "  + process.memoryUsage().rss/1000000)
+        // console.log(JSON.stringify(this.stats))
+
+        // Save the final output to be used in the done function
+        this.output = obj;
+        console.log("????????????????????????? H "  + process.memoryUsage().rss/1000000)
+      }
+    } catch (e) {
+      // required because thrown errors are not handled directly in the
+      // event emitter pattern and mocha does not have an "on error"
+      /* istanbul ignore next */
+      log(`Problem with mochawesome: ${e.stack}`, 'error');
+    }
+  });
+}
 
 /**
  *
@@ -620,9 +735,14 @@ class ProxyServer {
           logUtil.printLog("[TEST INFO] isMandatoryAlways parameter not provided for test " + eachTest.testName + ". Defaulting to 'true'.")
         }
         this.tests[eachTestName] = eachTest
+        if (!this.tests[eachTestName]['testCount']) {
+          this.tests[eachTestName]['testCount'] = 1;
+        }
+        this.tests[eachTestName]['testedCount'] = 0;
         this.tests[eachTestName]['enabled'] = true;
-        this.tests[eachTestName]['passed'] = [];
-        this.tests[eachTestName]['failed'] = [];
+
+        // For checking if all tests are complete and stop the test.
+        this.tests['completedTests'] = [];
       }
     }
   }
@@ -648,64 +768,107 @@ class ProxyServer {
   }
   
   initializeMocha() {
-    this.suite = new Mocha.Suite("EZProxy Test Results [" + new Date().toString().split(" ").slice(0,5).join(" ") + "]");
+    const testID = this.startTime.toString().split(" ").slice(0,3);
+    const reportName = 'html_report_' + testID.join("_") + "_" + uuid.v1();
+    this.suite = new Mocha.Suite("EZProxy Test Results [" + testID.join(" ") + "]");
+    this.suite['startTime'] = this.startTime;
     this.mocha = new Mocha({
       ui: 'bdd',
       quiet: true,
       reporter: 'mochawesome',
       reporterOptions: {
-        reportFilename: 'html_report',
+        reportFilename: reportName,
         json: false,
       }
     });
+    logUtil.printLog("HTML report name : " + reportName)
     this.mocha.suite = this.suite;
+    
+    this.rootUUID = uuid.v4();
+    this.suite.data = {"uuid":this.rootUUID,"title":"EZProxy Test Results [" + this.startTime.toString() + "]","fullFile":"","file":"","beforeHooks":[],"afterHooks":[],"tests":[],"suites":[],"passes":[],"failures":[],"pending":[],"skipped":[],"duration":0,"root":false,"rootEmpty":false,"_timeout":2000}
   };
+
+  checkIfAllTestsAreExecuted() {
+    const self = this;
+    var seconds = 1;
+    setInterval(function() {
+      if(Object.keys(self.tests).length == 0) {
+        logUtil.printLog("All Tests completed! Generating HTML report...")
+        self.stop();
+      }
+    }, seconds * 1000);
+  }
 
   performTestsOnRecord(record) {
     const self = this;
-    var nested = new Mocha.Suite("[" + new Date(record.startTime).toString().split(" ").slice(4,5).join(":") + "] " +
-                                                                      record.method + " " + record.url.split("?")[0])
-    self.suite.addSuite(nested)
+    self.testSuiteUUID = uuid.v4();
+    self.testSuite = {"parentUUID": self.rootUUID, "uuid":self.testSuiteUUID,"title":"[" + new Date(record.startTime).toString().split(" ").slice(4,5).join(":") + "] CONNECT " + record.host,"fullFile":"adadada","file":"","beforeHooks":[],"afterHooks":[],"tests":[],"suites":[],"passes":[],"failures":[],"pending":[],"skipped":[],"duration":1,"root":false,"rootEmpty":false,"_timeout":2000};
+    
     Object.keys(self.tests).forEach(function(eachTestName) {
             const eachTest = self.tests[eachTestName];
-            const ifCondition = eachTest.if;
-            const validateCondition = eachTest.validate;
-            const isMandatoryAlways = eachTest.isMandatoryAlways;
             const testEnabled = eachTest.enabled;
-            if (testEnabled) {
-              try {
-                if (eval(ifCondition)) {
-                  const testResult = eval(validateCondition);
+            // console.log(eachTest.if + "-" + record.host + " - " + (self.tests[eachTestName]['testedCount'] < self.tests[eachTestName]['testCount']))
+            const testedCount = self.tests[eachTestName]['testedCount'];
+            const testCount = self.tests[eachTestName]['testCount'];
+            if (testedCount < testCount) {
+              if (testEnabled) {
+                try {
+                  const isMandatoryAlways = eachTest.isMandatoryAlways;
+                  const testResult =  eachTest.test(record);
+                    
+                  const testUUID = uuid.v4();
+                  const data = JSON.stringify({title: "Data ", value: record})
+                  var test = {"parentUUID": self.testSuiteUUID, "title":eachTestName, "fullTitle":"This test will test if ","timedOut":false,"duration":"","state":"passed","speed":"fast","pass":false,"fail":false,"pending":false,"context": data,"code":"","err":{},"uuid":testUUID,"parentUUID":self.testSuiteUUID,"isHook":false,"skipped":false}
+
+                  self.suite.data.tests.push(testUUID)
 
                   if (isMandatoryAlways) {
-                    // TODO: FAIL THE TEST CASE
+                    // TODO: If the test fails once, do not execute the test again. Helps utilize lesser memory.
                   }
-                  
-                  var testObject = new Mocha.Test(eachTestName + " : " + record.method + " " + record.url + ".", function() {
-                    assert.equal(true, testResult, "Assertion '" + validateCondition + "' failed with " + record.method + 
-                                                                                            " request on " + record.url + ".")
-                  })
-                  nested.addTest(testObject)
-                  var tests = nested.tests;
-                  var context = {test: tests[tests.length - 1]}
 
-                  addContext(context, {title: "Data", value: record.rawRecord});
-    
                   if (testResult) {
-                    self.tests[eachTestName]['passed'].push(record.id);
+                    test.state = "passed";
+                    test.pass = true;
+                    self.testSuite.passes.push(testUUID)
+                    self.suite.data.passes.push(testUUID)
                   } else {
-                    self.tests[eachTestName]['failed'].push(record.id);
+                    test.state = "failed";
+                    test.fail = true;
+                    self.testSuite.failures.push(testUUID)
+                    self.suite.data.failures.push(testUUID)
                   }
-                  // data = null;
-                  tests = null;
-                  context = null;
+                  self.testSuite.tests.push(test);
+                  self.tests[eachTestName]['testedCount'] += 1;
+
+                } catch (e) {
+                  logUtil.printLog("[TEST ERROR] There was a failure while executing test " + eachTestName + " because : " + e.toString())
+                  test.code = e.toString();
+                  test.state = "failed";
+                  test.fail = true;
+                  self.testSuite.failures.push(testUUID)
+                  self.suite.data.failures.push(testUUID)
+                  self.tests[eachTestName]['testedCount'] += 1;
                 }
-              } catch (e) {
-                logUtil.printLog("[TEST ERROR] There was a problem in executing test " + eachTestName + " because : " + e.toString())
-              }
-          }
+            } 
+          } else if (testedCount == testCount) {
+            delete self.tests[eachTestName]
+            logUtil.printLog(eachTestName + " was completed!")
+          } 
         }
       );
+      // TODO: This is to include skipped tests also. But utilizes a lot fo memory.
+      // if (self.testSuite.tests.length == 0) {
+      //   const testUUID = uuid.v4();
+      //   const data = JSON.stringify({title: "Data : ", value: record})
+      //   var test = {"parentUUID": self.testSuiteUUID, "title": "No tests were run for this record because no test conditions were satisifed or tests count exceeded.","fullTitle":"","timedOut":false,"duration":0,"state":"passed","speed":"fast","pass":false,"fail":false,"pending":false,"context": data,"code":"","err":{},"uuid":testUUID,"parentUUID":self.testSuiteUUID,"isHook":false,"skipped":true}
+      //   self.testSuite.tests.push(test);
+      //   self.testSuite.skipped.push(testUUID);
+      //   self.suite.data.skipped.push(testUUID)
+      // }
+      
+      if (self.testSuite.tests.length != 0) {
+        self.suite.data.suites.push(self.testSuite);
+      }
     }
   
 
@@ -720,6 +883,7 @@ class ProxyServer {
   
   start(options) {
     const self = this;
+    this.stopping = false;
 
     options = options || {};
 
@@ -727,6 +891,8 @@ class ProxyServer {
     this._enableRecord = options.enableRecord;
 
     const duration = options.duration;
+
+    this.startTime = new Date();
 
     if (duration) {
       logUtil.printLog("[SERVER INFO] Proxy Server will run for " + duration + " minutes(s).")
@@ -753,6 +919,7 @@ class ProxyServer {
         logUtil.printLog("[SERVER INFO] Tests is enabled but there are not Tests added.")
       } else {
         this.initializeMocha();
+        this.checkIfAllTestsAreExecuted();
       }
     }
 
@@ -785,6 +952,7 @@ class ProxyServer {
 
   finalizeTests() {
     if(this._enableTests) {
+      // console.log(JSON.stringify(this.suite.data))
       this.mocha.run(function () {
         logUtil.printLog("[SERVER INFO] Tests completed!");
         // log() // logs out active handles that are keeping node running
@@ -797,16 +965,21 @@ class ProxyServer {
   }
 
   stop() {
-    this.disableRecording();
-    this.proxyServer.close().then( closed => {
-      systemProxyMgr.disableGlobalProxy();
-      logUtil.printLog("[SERVER INFO] Proxy Server was stopped...");
-      this.finalizeTests();
- 
-    }).catch( error => {
-      logUtil.printLog("[SERVER LOG] There was an error while stopping Proxy Server. Reason : " + error)
-      this.finalizeTests();
-    })
+    if(!this.stopping) {
+      this.stopping = true;
+      if (this._recording && this._enableRecord) {
+        this.disableRecording();
+      }
+      this.proxyServer.close().then( closed => {
+        systemProxyMgr.disableGlobalProxy();
+        logUtil.printLog("[SERVER INFO] Proxy Server was stopped...");
+        this.finalizeTests();
+   
+      }).catch( error => {
+        logUtil.printLog("[SERVER LOG] There was an error while stopping Proxy Server. Reason : " + error)
+        this.finalizeTests();
+      })
+    }
   }
 }
 
