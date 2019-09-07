@@ -14,11 +14,12 @@
     "brotli": "^1.3.2",
     "co": "^4.6.0",
     "colorful": "^2.1.0",
-    "fast-json-stringify": "^0.17.0",
     "iconv-lite": "^0.4.6",
     "inquirer": "^5.2.0",
     "ip": "^0.3.2",
     "mime-types": "2.1.11",
+    "mocha": "^6.2.0",
+    "mochawesome": "abhimanyupandian/mochawesome",
     "nedb": "^1.8.0",
     "node-easy-cert": "^1.0.0",
     "on-change": "^1.6.2",
@@ -38,6 +39,12 @@
   "name": "ezproxy",
   "pre-commit": [
     "lint"
+  ],
+  "args": [
+    "-u",
+    "bdd",
+    "--http-header-size",
+    "81000"
   ],
   "repository": {
     "type": "git",
