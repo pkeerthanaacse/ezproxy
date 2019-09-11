@@ -46,8 +46,14 @@ Filters
    - [x] Filters are functions and must be defined as function <filter_name> (record).
    - [x] 'record' parameter can be used to define conditions over requests/responses for filtering.
    - [x] Every filter function must return either the record (if the record must be collected) or null (if the response must be rejected).
-   
 
+Tests
+------------
+
+   - [x] Filters are functions and must be defined as function <test_name> (record).
+   - [x] 'record' parameter can be used to write tests on requests/responses.
+   - [x] Every filter function must return either true or false based on the test.
+   
 API Reference
 ------------
 
@@ -62,7 +68,11 @@ API Reference
 - stop() : 
 
         proxy.stop()
-    
+
+- throttle(bps) : Sets the throttle rate in bps.
+
+        proxy.throttle(512)
+
 - getServerState() : Returns the current state (INIT/READY/CLOSED) of the Proxy Server created.
  
         proxy.getServerState()
@@ -179,6 +189,46 @@ API Reference
 - removeAllFilters() : Removes all existing filters.
  
         proxy.removeAllFilters()
+  
+- addTests({}) : Adds tests.
+
+        function alerts_test1(record) {
+            if (record.host.includes('youtube.com')) {
+                if (record.statusCode == 225) 
+                {return true;}
+            } return false;
+        }
+
+        function alerts_test2(record) {
+            if (record.host.includes('ytimga.com')) {
+                if (record.statusCode == 225) 
+                {return true;}
+            } return false;
+        }
+        
+        proxy.addTests({"TC1" : {
+                "test": alerts_test1
+                },
+            "TC2" : {
+                "test": alerts_test2
+                }   
+            })
+            
+- enableAllTests() : Enables all tests previously added using addTests.
+        
+        proxy.enableAllTests()
+        
+- disableAllTests() : Disables all tests previously added using addTests.
+
+        proxy.disableAllTests()
+        
+- enableTest(testName) : Enables a test previously added using addTests.
+
+        proxy.enableTest('TC1')
+
+- disableTest(testName) : Disables a test previously added using addTests.
+
+        proxy.disableTest('TC1')
   
 Response object parameters:
 ---------
