@@ -608,7 +608,7 @@ class ProxyServer {
     }
   }
 
-  enableTest() {
+  enableTest(testName) {
     this.proxyServer.recorder.tests[testName]['enabled'] = true;
   }
 
@@ -636,7 +636,7 @@ class ProxyServer {
     this._endAfterTestsComplete = false;
   }
 
-  startCheckForTestsCompletion() {
+  _startCheckForTestsCompletion() {
     if (this._endAfterTestsComplete) {
       const self = this;
       var seconds = 1;
@@ -674,7 +674,7 @@ class ProxyServer {
     if (this.proxyServer.recorder.tests == {}) {
       logUtil.printLog("[SERVER INFO] No Tests are added for this session.")
     } else {
-      this.startCheckForTestsCompletion();
+      this._startCheckForTestsCompletion();
     }
 
     if (!systemProxyMgr.getProxyState()) {
