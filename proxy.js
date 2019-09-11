@@ -33,7 +33,7 @@ const http = require('http'),
   exec = require('child_process').exec,
   fs = require('fs'),
   utils = require('util'),
-  convert = require('binstring'),
+  convert = require('binstring');
 
 // var log_file = fs.createWriteStream('/debug.log', { flags: 'w' });
 // var log_stdout = process.stdout;
@@ -130,15 +130,6 @@ class ProxyCore extends events.EventEmitter {
       logUtil.setPrintStatus(false);
     }
 
-    if (config.throttle) {
-      logUtil.printLog('throttle :' + config.throttle + 'kb/s');
-      const rate = parseInt(config.throttle, 10);
-      if (rate < 1) {
-        throw new Error('Invalid throttle rate value, should be positive integer');
-      }
-      global._throttle = new ThrottleGroup({ rate: 1024 * rate }); // rate - byte/sec
-    }
-
     // init recorder
     this.recorder = config.recorder;
 
@@ -150,6 +141,14 @@ class ProxyCore extends events.EventEmitter {
       forceProxyHttps: !!config.forceProxyHttps,
       dangerouslyIgnoreUnauthorized: !!config.dangerouslyIgnoreUnauthorized
     }, this.proxyRule, this.recorder);
+  }
+
+  throttle(bps) {
+    const rate = parseInt(bps, 10);
+    if (rate < 1) {
+      throw new Error('Invalid throttle rate value, should be positive integer');
+    }
+    global._throttle = new ThrottleGroup({ rate: 1024 * rate }); // rate - byte/sec    }
   }
 
   /**
@@ -393,6 +392,10 @@ class ProxyServer {
     this._updateRuleOnConnectError();
   }
 
+  throttle(bps) {
+    this.proxyServer.throttle(bps);
+  }
+
   createProxyServer() {
     this.proxyServer = new _ProxyServer({
       port: this.port,
@@ -580,7 +583,7 @@ class ProxyServer {
 
   addTests(testDefinitions) {
     testDefinitions = testDefinitions || {};
-    if (testDefinitions == {}) {
+    if (Object.keys(testDefinitions).length == 0) {
       logUtil.printLog("[TEST ERROR] No Test Defintions found. Tests wont be added.")
     } else {
       var tests = this.proxyServer.recorder.tests;
@@ -600,7 +603,7 @@ class ProxyServer {
         tests[eachTestName]['enabled'] = true;
 
         // For checking if all tests are complete and stop the test.
-        ['completedTests'] = [];
+        tests[eachTestName]['completedTests'] = [];
       }
     }
   }
@@ -625,15 +628,25 @@ class ProxyServer {
     }
   }
 
+  enableEndTestAfterComplete() {
+    this._endAfterTestsComplete = true;
+  }
+
+  disableEndTestAfterComplete() {
+    this._endAfterTestsComplete = false;
+  }
+
   startCheckForTestsCompletion() {
-    const self = this;
-    var seconds = 1;
-    setInterval(function() {
-      if(Object.keys(self.proxyServer.recorder.tests).length == 0) {
-        logUtil.printLog("All Tests completed! Generating HTML report...")
-        self.stop();
-      }
-    }, seconds * 1000);
+    if (this._endAfterTestsComplete) {
+      const self = this;
+      var seconds = 1;
+      setInterval(function() {
+        if(Object.keys(self.proxyServer.recorder.tests).length == 0) {
+          logUtil.printLog("All Tests completed! Generating HTML report...")
+          self.stop();
+        }
+      }, seconds * 1000);
+    }
   }
 
   start(options) {
@@ -643,9 +656,9 @@ class ProxyServer {
     options = options || {};
 
     this._enableTests = options.enableTests;
+    this._endAfterTestsComplete = options.endAfterTestsComplete;
 
     const duration = options.duration;
-
     if (duration) {
       logUtil.printLog("[SERVER INFO] Proxy Server will run for " + duration + " minutes(s).")
       setTimeout(function() {
