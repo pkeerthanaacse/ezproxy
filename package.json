@@ -22,7 +22,6 @@
     "mochawesome": "abhimanyupandian/mochawesome",
     "nedb": "^1.8.0",
     "node-easy-cert": "^1.0.0",
-    "on-change": "^1.6.2",
     "pug": "^2.0.0-beta6",
     "request": "^2.74.0",
     "stream-throttle": "^0.1.3",
