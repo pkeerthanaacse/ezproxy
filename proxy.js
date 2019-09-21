@@ -578,7 +578,7 @@ class ProxyServer {
   }
 
   removeAllFilters() {
-    this.proxyServer.recorder.filterFunctions = {};
+    this.proxyServer.recorder.filterFunctions = null;
   }
 
   addTests(testDefinitions) {
@@ -660,14 +660,14 @@ class ProxyServer {
 
     const duration = options.duration;
     if (duration) {
-      logUtil.printLog("[SERVER INFO] Proxy Server will run for " + duration + " minutes(s).")
+      logUtil.printLog("[SERVER INFO] Proxy Server will run for " + duration + " minute(s).")
       setTimeout(function() {
         logUtil.printLog("[SERVER INFO] Proxy Server ran for " + duration + " minute(s). Stopping...")
         self.stop();
       }, duration * 60 * 1000);
     }
 
-    if (this.proxyServer.recorder.filterFunctions == {}) {
+    if (this.proxyServer.recorder.filterFunctions == null) {
       logUtil.printLog("[SERVER INFO] No Filters are added for this session.")
     }
     
@@ -695,11 +695,13 @@ class ProxyServer {
   }
 
   finalizeTests() {
+    const self = this;
     if(this._enableTests) {
       // console.log(JSON.stringify(this.suite.data))
       this.proxyServer.recorder.mocha.run(function () {
         logUtil.printLog("[SERVER INFO] Tests completed!");
         // log() // logs out active handles that are keeping node running
+        logUtil.printLog("HTML report : /mochawesome-report/" + self.proxyServer.recorder.reportName)
         process.exit();
       }) 
     } else {
