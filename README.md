@@ -30,6 +30,14 @@ Creating Proxy Server Instance to Support VPN (Windows only)
         networkAdaptorName: "<VPN_ADAPTOR_NAME>",
     })
 
+Creating Proxy Server Instance with Tests (Tested only on Windows)
+------------
+    server.start({
+        enableTests: true, // Enable Tests
+        endAfterTestsComplete: true, // End proxy session after tests are complete. Defaults to false.
+        duration: 0.5 // The number of minutes the proxy session has to run. (0.5 minutes = 30 seconds)
+    })
+
 Rules
 ------------
 
@@ -207,7 +215,8 @@ API Reference
         }
         
         proxy.addTests({"TC1" : {
-                "test": alerts_test1
+                "test": alerts_test1,
+                "testCount": 100, //This is the number of times the testcase has to be executed. Defaults to 1 if not provided.
                 },
             "TC2" : {
                 "test": alerts_test2
