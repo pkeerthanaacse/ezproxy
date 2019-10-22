@@ -6,7 +6,7 @@ A Proxy Server implementation in JS based on AnyProxy - https://github.com/aliba
 Installation
 ------------
 ```
-npm install https://github.com/abhimanyupandian/ez-proxy
+npm install https://github.com/abhimanyupandian/ezproxy
 ```
 
 Declaration
