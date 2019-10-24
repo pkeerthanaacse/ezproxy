@@ -31,7 +31,7 @@
     "eslint": "^3.5.0",
     "eslint-config-airbnb": "^15.1.0",
     "eslint-plugin-import": "^2.7.0",
-    "eslint-plugin-jsx-a11y": "^5.1.1",
+    "eslint-plugin-jsx-a11y": "^5.1.1"
   },
   "deprecated": false,
   "description": "A Proxy Server implementation in JS based on AnyProxy with additional functionalities",
