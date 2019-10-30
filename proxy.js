@@ -363,7 +363,7 @@ class _ProxyServer extends ProxyCore {
             resolve("CLOSED");
           }
         }).catch(error => {
-          logUtil.printLog('Unable to clready cache file. Reason : ' + error);
+          logUtil.printLog('Unable to clear cache file. Reason : ' + error);
           reject(error);
         })
     });
