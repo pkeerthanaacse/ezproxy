@@ -726,4 +726,12 @@ class ProxyServer {
   }
 }
 
+//Gracefully shutting down from (Ctrl+C)
+process.on('SIGINT', function() {
+  console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
+  systemProxyMgr.disableGlobalProxy();
+  logUtil.printLog("[SERVER INFO] Proxy Server was stopped...");
+  process.exit();
+});
+
 module.exports.ProxyServer = ProxyServer;
